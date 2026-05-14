@@ -179,3 +179,106 @@ Optional bonus:
 - add authentication for SSE or HTTP transport
 - support both SQLite and PostgreSQL with the same MCP surface
 - add richer output annotations or pagination
+
+---
+
+# Reference Implementation (this repo)
+
+This repo includes a working implementation in `implementation/` following the suggested structure.
+
+## Project Structure
+
+```text
+implementation/
+  __init__.py
+  db.py
+  init_db.py
+  mcp_server.py
+  verify_server.py
+  tests/
+    test_db.py
+requirements.txt
+requirements-dev.txt
+requirements-postgres.txt
+```
+
+## Setup
+
+1. Install Python 3.10+.
+2. Install deps:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
+
+## Initialize DB (optional)
+
+The server auto-creates the DB on first run. To create it manually:
+
+```bash
+python -m implementation.init_db
+```
+
+DB default path: `implementation/data/lab.sqlite3` (override with `--db` or `SQLITE_LAB_DB`).
+
+## Run MCP Server (stdio)
+
+```bash
+python -m implementation.mcp_server
+```
+
+## Verify (headless)
+
+Runs adapter-level checks (search/insert/aggregate) and prints an Inspector command:
+
+```bash
+python -m implementation.verify_server
+```
+
+## Tests
+
+```bash
+pytest -q
+```
+
+## MCP Inspector
+
+Run Inspector and point it to the server (replace `python` with your interpreter if needed):
+
+```bash
+npx -y @modelcontextprotocol/inspector python -m implementation.mcp_server
+```
+
+Expected:
+
+- tools: `search`, `insert`, `aggregate`
+- resources: `schema://database`, `schema://table/{table_name}`
+
+## Bonus: Output Polish (Pagination)
+
+`search` returns extra metadata to make pagination demos clearer:
+
+- `has_more`: boolean
+- `next_offset`: integer or null
+
+## Bonus: PostgreSQL Backend
+
+This implementation can run against PostgreSQL with the same MCP surface.
+
+1. Install Postgres deps:
+
+```bash
+python -m pip install -r requirements-postgres.txt
+```
+
+2. Run server with Postgres DSN:
+
+```bash
+python -m implementation.mcp_server --backend postgres --pg-dsn "postgresql://USER:PASSWORD@HOST:5432/DBNAME" --pg-schema public
+```
+
+Notes:
+
+- The server will not auto-create tables on PostgreSQL; point it at an existing DB/schema.
+- Keep the same tool names and resource URIs (`schema://...`) for grading consistency.
