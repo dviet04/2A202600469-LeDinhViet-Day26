@@ -53,3 +53,45 @@ def test_aggregate_avg(adapter: SQLiteAdapter) -> None:
     assert "rows" in res
     assert len(res["rows"]) >= 1
 
+
+def test_insert_success(adapter: SQLiteAdapter) -> None:
+    res = adapter.insert("students", {"name": "Test", "cohort": "C3", "score": 80.0})
+    assert "inserted" in res
+    assert res["inserted"]["name"] == "Test"
+    assert res["inserted"]["cohort"] == "C3"
+    assert res["inserted"]["score"] == 80.0
+    assert "id" in res["inserted"]  # Should have auto-generated ID
+
+
+def test_aggregate_count(adapter: SQLiteAdapter) -> None:
+    res = adapter.aggregate("students", metric="count", column="id")
+    assert "rows" in res
+    assert len(res["rows"]) == 1
+    assert res["rows"][0]["value"] >= 4  # At least 4 seeded students
+
+
+def test_search_with_filters_and_columns(adapter: SQLiteAdapter) -> None:
+    res = adapter.search(
+        "students",
+        columns=["name", "score"],
+        filters=[{"column": "score", "op": "gte", "value": 85}],
+        limit=10,
+    )
+    assert "rows" in res
+    assert len(res["rows"]) >= 1
+    # Check that only requested columns are returned
+    for row in res["rows"]:
+        assert "name" in row
+        assert "score" in row
+        assert row["score"] >= 85
+
+
+def test_pagination_has_more(adapter: SQLiteAdapter) -> None:
+    res = adapter.search("students", limit=2, offset=0)
+    assert "has_more" in res
+    assert "next_offset" in res
+    # With 4+ students, has_more should be True with limit=2
+    if res["total"] > 2:
+        assert res["has_more"] is True
+        assert res["next_offset"] == 2
+
